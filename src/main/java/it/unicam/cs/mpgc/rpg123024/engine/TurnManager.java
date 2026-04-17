@@ -4,6 +4,8 @@ import it.unicam.cs.mpgc.rpg123024.model.Entity;
 import it.unicam.cs.mpgc.rpg123024.model.Grid;
 import it.unicam.cs.mpgc.rpg123024.model.entities.Firewall;
 import it.unicam.cs.mpgc.rpg123024.model.entities.Virus;
+import it.unicam.cs.mpgc.rpg123024.model.abilities.Ability;
+import it.unicam.cs.mpgc.rpg123024.model.abilities.BaseAttack;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,6 +61,24 @@ public class TurnManager {
         return false;
     }
 
+    public boolean attackWithFirewall(Firewall fw, Virus target) {
+        // Controlla se è il tuo turno e se il firewall non ha già sparato
+        if (currentState != GameState.PLAYER_TURN || !fw.canAttack()) {
+            return false;
+        }
+
+        // Istanzia l'attacco base (il calcolo del range è delegato all'abilità)
+        Ability attack = new BaseAttack();
+
+        // Esegue l'attacco
+        attack.execute(fw, target);
+
+        // Registra che il Firewall ha usato la sua azione di attacco
+        fw.setAttacked();
+
+        return true;
+    }
+
     public void sacrificeFirewall(Firewall fw) {
         if (currentState != GameState.PLAYER_TURN) return;
 
@@ -81,7 +101,7 @@ public class TurnManager {
     private void executeEnemyTurn() {
         System.out.println("--- TURNO NEMICO ---");
 
-        // 1. Muovi tutti i virus
+        //Muovi tutti i virus
         for (Virus virus : activeViruses) {
             int nextX = virus.getX() - 1;
             int currentY = virus.getY();
@@ -95,28 +115,28 @@ public class TurnManager {
                 // Controlla cosa c'è davanti
                 Optional<Entity> obstacle = grid.getEntityAt(nextX, currentY);
                 if (obstacle.isPresent() && obstacle.get() instanceof Firewall) {
-                    // C'è un Firewall! Sbattici contro
+                    // C'è un Firewall, Sbattici contro
                     Firewall fw = (Firewall) obstacle.get();
                     fw.takeHit();
                     System.out.println("Virus bloccato da Firewall! Durabilità Firewall: " + fw.getDurability());
                 } else {
-                    // Via libera, avanza!
+                    // Via libera, avanza
                     grid.moveEntity(virus, nextX, currentY);
                 }
             }
         }
 
-        // 2. Controlla morti e distruzioni (Pulizia Griglia)
+        //Controlla morti e distruzioni (Pulizia Griglia)
         cleanupBoard();
 
-        // 3. Controlla Game Over
+        //Controlla Game Over
         if (this.coreHp <= 0) {
             currentState = GameState.GAME_OVER;
             System.out.println("GAME OVER - Il sistema è stato compromesso.");
             return;
         }
 
-        // 4. Ripristina le azioni dei Firewall per il nuovo turno
+        // Ripristina le azioni dei Firewall per il nuovo turno
         for (Firewall fw : activeFirewalls) {
             fw.resetTurnFlags();
         }
@@ -127,7 +147,6 @@ public class TurnManager {
 
     // Rimuove i Firewall rotti e i Virus distrutti
     private void cleanupBoard() {
-        // Usiamo gli Iterator per rimuovere elementi in sicurezza da una lista mentre la scorriamo
         Iterator<Firewall> fwIterator = activeFirewalls.iterator();
         while (fwIterator.hasNext()) {
             Firewall fw = fwIterator.next();
