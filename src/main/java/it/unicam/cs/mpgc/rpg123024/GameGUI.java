@@ -9,6 +9,7 @@ import it.unicam.cs.mpgc.rpg123024.model.entities.Virus;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -17,13 +18,19 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 import java.util.Optional;
 
+/**
+ * Interfaccia Grafica di Bit Shift Tactics con rendering vettoriale avanzato.
+ * Stile: Firewall (Ottagono Blu), Virus (Stella Simmetrica Rossa).
+ */
 public class GameGUI extends Application {
 
     private static final int COLS = 8;
@@ -32,22 +39,19 @@ public class GameGUI extends Application {
 
     private TurnManager engine;
     private Grid logicalGrid;
-    private final Label[][] cellLabels = new Label[COLS][ROWS];
-
-    // Nuovi elementi per l'HUD
     private Label statsLabel;
+    private GridPane gridPane;
 
     @Override
     public void start(Stage primaryStage) {
         logicalGrid = new Grid(COLS, ROWS);
         engine = new TurnManager(logicalGrid);
 
-        // IL NUOVO LAYOUT PRINCIPALE
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: BLACK;");
 
-        // --- 1. CREAZIONE DELL'HUD (In alto) ---
-        HBox hud = new HBox(20); // Spazio di 20px tra gli elementi
+        // --- 1. HUD (Heads-Up Display) ---
+        HBox hud = new HBox(20);
         hud.setAlignment(Pos.CENTER);
         hud.setPadding(new Insets(15));
         hud.setStyle("-fx-background-color: #1a1a1a; -fx-border-color: #333; -fx-border-width: 0 0 2 0;");
@@ -57,34 +61,35 @@ public class GameGUI extends Application {
         statsLabel.setTextFill(Color.WHITE);
 
         Button btnPassTurn = new Button("Passa Turno");
-        btnPassTurn.setStyle("-fx-font-weight: bold; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        btnPassTurn.setStyle("-fx-font-weight: bold; -fx-background-color: #4CAF50; -fx-text-fill: white; -fx-cursor: hand;");
         btnPassTurn.setOnAction(e -> handleEndTurn());
 
         Button btnSpawnEnemy = new Button("Spawna Virus (Test)");
-        btnSpawnEnemy.setStyle("-fx-font-weight: bold; -fx-background-color: #f44336; -fx-text-fill: white;");
+        btnSpawnEnemy.setStyle("-fx-font-weight: bold; -fx-background-color: #f44336; -fx-text-fill: white; -fx-cursor: hand;");
         btnSpawnEnemy.setOnAction(e -> handleSpawnEnemy());
 
         hud.getChildren().addAll(statsLabel, btnPassTurn, btnSpawnEnemy);
-        root.setTop(hud); // Mettiamo l'HUD in cima
+        root.setTop(hud);
 
-        // --- 2. CREAZIONE DELLA GRIGLIA (Al centro) ---
-        GridPane gridPane = new GridPane();
+        // --- 2. GRIGLIA DI GIOCO ---
+        gridPane = new GridPane();
         gridPane.setAlignment(Pos.CENTER);
 
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
                 StackPane cellPane = new StackPane();
 
+                // Blindatura della dimensione
+                cellPane.setMinSize(CELL_SIZE, CELL_SIZE);
+                cellPane.setMaxSize(CELL_SIZE, CELL_SIZE);
+
                 Rectangle bg = new Rectangle(CELL_SIZE, CELL_SIZE);
                 bg.setStroke(Color.BLACK);
+
                 if (col == 0) bg.setFill(Color.DARKRED);
                 else bg.setFill(Color.web("#2b2b2b"));
 
-                Label label = new Label("");
-                label.setFont(Font.font("Arial", FontWeight.BOLD, 40));
-                cellLabels[col][row] = label;
-
-                cellPane.getChildren().addAll(bg, label);
+                cellPane.getChildren().add(bg);
                 gridPane.add(cellPane, col, row);
 
                 final int finalCol = col;
@@ -93,10 +98,8 @@ public class GameGUI extends Application {
             }
         }
 
-        // Mettiamo la griglia al centro del BorderPane
         root.setCenter(gridPane);
 
-        // Aumentiamo un po' l'altezza della finestra per far spazio all'HUD
         Scene scene = new Scene(root, 800, 650);
 
         primaryStage.setTitle("Bit Shift Tactics");
@@ -107,7 +110,7 @@ public class GameGUI extends Application {
         updateView();
     }
 
-    // --- METODI DI INTERAZIONE ---
+    // --- LOGICA DI INPUT ATTUALE (Solo Piazzamento) ---
 
     private void handleCellClick(int col, int row) {
         if (engine.placeFirewall("FW_" + col + "_" + row, col, row)) {
@@ -116,44 +119,92 @@ public class GameGUI extends Application {
     }
 
     private void handleEndTurn() {
-        engine.endPlayerTurn(); // Passa il turno e fa muovere i nemici!
+        engine.endPlayerTurn();
         updateView();
     }
 
     private void handleSpawnEnemy() {
-        // Crea un virus a caso nell'ultima colonna di destra
         int randomRow = (int) (Math.random() * ROWS);
         Virus v = new Virus("V_TEST", 7, randomRow, 100);
         engine.spawnVirus(v);
         updateView();
     }
 
-    // --- AGGIORNAMENTO GRAFICO ---
+    // --- AGGIORNAMENTO GRAFICO VETTORIALE ---
 
     private void updateView() {
-        // 1. Aggiorna i testi dell'HUD
         statsLabel.setText(String.format("CORE HP: %d  |  DATA SCRAPS: %d  |  STATO: %s",
                 engine.getCoreHp(), engine.getDataScraps(), engine.getCurrentState()));
 
-        // 2. Disegna i personaggi sulla griglia
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
+
+                StackPane cellPane = getCellPaneAt(col, row);
+                if (cellPane == null) continue;
+
+                // PULIZIA: Rimuoviamo vecchie forme mantenendo lo sfondo
+                cellPane.getChildren().removeIf(node -> node instanceof Shape && node != cellPane.getChildren().get(0));
+
                 Optional<Entity> entityOpt = logicalGrid.getEntityAt(col, row);
 
                 if (entityOpt.isPresent()) {
                     Entity e = entityOpt.get();
                     if (e instanceof Firewall) {
-                        cellLabels[col][row].setText("F");
-                        cellLabels[col][row].setTextFill(Color.CYAN);
+                        cellPane.getChildren().add(createFirewallShape());
                     } else if (e instanceof Virus) {
-                        cellLabels[col][row].setText("V");
-                        cellLabels[col][row].setTextFill(Color.LIMEGREEN);
+                        cellPane.getChildren().add(createVirusShape());
                     }
-                } else {
-                    cellLabels[col][row].setText("");
                 }
             }
         }
+    }
+
+    private StackPane getCellPaneAt(int col, int row) {
+        for (Node node : gridPane.getChildren()) {
+            if (GridPane.getColumnIndex(node) == col && GridPane.getRowIndex(node) == row) {
+                return (StackPane) node;
+            }
+        }
+        return null;
+    }
+
+    // --- HELPER VISIVI DEFINITIVI ---
+
+    // Crea un Ottagono Massiccio Blu (Sicurezza)
+    private Polygon createFirewallShape() {
+        Polygon firewall = new Polygon(
+                25, 10,
+                55, 10,
+                70, 25,
+                70, 55,
+                55, 70,
+                25, 70,
+                10, 55,
+                10, 25
+        );
+        firewall.setFill(Color.web("#1565C0")); // Blu profondo
+        firewall.setStroke(Color.CYAN);         // Bordo scudo energetico
+        firewall.setStrokeWidth(3);
+        return firewall;
+    }
+
+    // Crea una Stella a 4 Punte Simmetrica Rossa (Pericolo/Malware)
+    private Polygon createVirusShape() {
+        Polygon virus = new Polygon(
+                40, 15,  // Punta Nord
+                48, 32,  // Angolo interno alto-destra
+                65, 40,  // Punta Est
+                48, 48,  // Angolo interno basso-destra
+                40, 65,  // Punta Sud
+                32, 48,  // Angolo interno basso-sinistra
+                15, 40,  // Punta Ovest
+                32, 32   // Angolo interno alto-sinistra
+        );
+        virus.setFill(Color.web("#8B0000"));   // Rosso scuro corrotto
+        virus.setStroke(Color.web("#FF3333")); // Bordo rosso neon
+        virus.setStrokeWidth(3);
+
+        return virus;
     }
 
     public static void main(String[] args) {
