@@ -88,6 +88,15 @@ public class TurnManager {
         System.out.println("Firewall sacrificato! Core HP ripristinati a: " + this.coreHp);
     }
 
+    // Aggiunge un virus alla partita in modo sicuro
+    public boolean spawnVirus(Virus virus) {
+        if (grid.placeEntity(virus, virus.getX(), virus.getY())) {
+            activeViruses.add(virus);
+            return true;
+        }
+        return false;
+    }
+
     // --- TRANSIZIONE DI TURNO ---
 
     public void endPlayerTurn() {
