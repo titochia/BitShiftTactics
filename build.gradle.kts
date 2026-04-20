@@ -19,7 +19,7 @@ javafx {
 
 // Diciamo a Gradle quale sarà il punto di partenza della grafica (creeremo questa classe tra poco!)
 application {
-    mainClass.set("it.unicam.cs.mpgc.rpg123024.GameGUI")
+    mainClass.set("it.unicam.cs.mpgc.rpg123024.Launcher")
 }
 
 dependencies {
