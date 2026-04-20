@@ -16,7 +16,6 @@ public class TurnManager {
 
     private final Grid grid;
     private GameState currentState;
-
     private int coreHp;
     private int dataScraps;
 
