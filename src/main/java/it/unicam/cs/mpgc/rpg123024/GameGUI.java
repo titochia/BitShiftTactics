@@ -1,41 +1,60 @@
 package it.unicam.cs.mpgc.rpg123024;
 
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
-/**
- * Questa classe è la View principale del gioco.
- * Estendere "Application" la trasforma in una finestra JavaFX.
- */
 public class GameGUI extends Application {
+
+    // Definiamo le dimensioni del nostro tabellone
+    private static final int COLS = 8;
+    private static final int ROWS = 5;
+    private static final int CELL_SIZE = 80; // Ogni quadratino sarà 80x80 pixel
 
     @Override
     public void start(Stage primaryStage) {
-        // 1. Creiamo il "nodo" radice (un layout di base in cui metteremo la griglia)
-        StackPane root = new StackPane();
+        // 1. Creiamo il layout a griglia (GridPane) e lo centriamo nello schermo
+        GridPane gridPane = new GridPane();
+        gridPane.setAlignment(Pos.CENTER);
 
-        // Aggiungiamo un testo temporaneo al centro per assicurarci che funzioni
-        root.getChildren().add(new Label("Interfaccia Grafica di Bit Shift Tactics Attiva!"));
+        // 2. Doppio ciclo For per costruire le 40 celle (8x5)
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
 
-        // 2. Creiamo la Scena (il contenuto della finestra) e diamo una risoluzione (es. 800x600)
-        Scene scene = new Scene(root, 800, 600);
+                // Creiamo la forma geometrica della singola cella
+                Rectangle cell = new Rectangle(CELL_SIZE, CELL_SIZE);
 
-        // 3. Configuriamo la Finestra fisica (Stage)
-        primaryStage.setTitle("Bit Shift Tactics");
+                // Disegniamo il bordo nero attorno alla cella
+                cell.setStroke(Color.BLACK);
+
+                // 3. LA RED ZONE: Se siamo nella prima colonna (0), coloriamo di rosso!
+                if (col == 0) {
+                    cell.setFill(Color.DARKRED);
+                } else {
+                    // Altrimenti usiamo un colore grigio scuro stile "cyberpunk"
+                    cell.setFill(Color.web("#2b2b2b"));
+                }
+
+                // 4. Aggiungiamo il quadratino appena creato alla griglia visiva
+                // Attenzione: JavaFX vuole prima la colonna (x) e poi la riga (y)
+                gridPane.add(cell, col, row);
+            }
+        }
+
+        // 5. Impostiamo la scena, mettendo la griglia su uno sfondo nero
+        Scene scene = new Scene(gridPane, 800, 600);
+        scene.setFill(Color.BLACK);
+
+        primaryStage.setTitle("Bit Shift Tactics - Battle Grid");
         primaryStage.setScene(scene);
-
-        // Blocchiamo il ridimensionamento così la griglia non si sforma se l'utente tira i bordi
         primaryStage.setResizable(false);
-
-        // Mostriamo la finestra a schermo!
         primaryStage.show();
     }
-
     public static void main(String[] args) {
-        // Questo comando "accende" il motore grafico
         launch(args);
     }
 }
