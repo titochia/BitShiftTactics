@@ -36,6 +36,26 @@ public class TurnManager {
     public int getCoreHp() { return coreHp; }
     public int getDataScraps() { return dataScraps; }
 
+    /**
+     * Ripristina lo stato del gioco da un salvataggio.
+     */
+    public void loadState(int hp, int scraps) {
+        this.coreHp = hp;
+        this.dataScraps = scraps;
+        this.activeFirewalls.clear();
+        this.activeViruses.clear();
+    }
+
+    /**
+     * Restituisce tutte le entità attualmente attive nel gioco.
+     */
+    public List<Entity> getAllEntities() {
+        List<Entity> all = new ArrayList<>();
+        all.addAll(activeFirewalls);
+        all.addAll(activeViruses);
+        return all;
+    }
+
     // --- AZIONI DEL GIOCATORE ---
 
     public boolean placeFirewall(String id, int x, int y) {
