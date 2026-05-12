@@ -31,19 +31,10 @@ public class BaseAttack implements Ability {
 
         // 2. Controllo Range
         if (distance <= this.range) {
-
-            // 3. Applichiamo il danno (solo se è un bersaglio distruttibile)
-            // Usiamo il pattern matching di Java (se usi Java 16+) o il cast tradizionale
-            if (target instanceof Virus) {
-                Virus virus = (Virus) target;
-                virus.takeDamage(this.damage);
-
-                System.out.println(source.getId() + " ha colpito " + virus.getId() +
-                        " per " + damage + " danni! (HP rimasti: " + virus.getHp() + ")");
-
-            } else {
-                System.out.println("Bersaglio non valido o indistruttibile.");
-            }
+            // 3. Applichiamo il danno direttamente all'entità (Polimorfismo / SOLID)
+            target.takeDamage(this.damage);
+            System.out.println(source.getId() + " ha colpito " + target.getId() +
+                    " per " + damage + " danni!");
         } else {
             System.out.println("Attacco fallito: bersaglio fuori portata. (Distanza: " + distance + ")");
         }

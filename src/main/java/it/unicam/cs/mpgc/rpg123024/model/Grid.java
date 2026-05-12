@@ -28,11 +28,9 @@ public class Grid {
         if (cells.containsKey(new Position(targetX, targetY))) {
             return false; // Cella già occupata
         }
-        // REGOLA RED ZONE: I Firewall non possono entrare nella colonna 0
-        if (entity instanceof Firewall && targetX == 0) {
-            return false;
-        }
-        return true;
+        
+        // Deleghiamo all'entità il controllo dei propri vincoli (Principio di Delega/SOLID)
+        return entity.canOccupy(targetX, targetY);
     }
 
     // Sposta fisicamente l'entità

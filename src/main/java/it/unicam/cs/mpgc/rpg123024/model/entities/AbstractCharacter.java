@@ -6,11 +6,13 @@ public abstract class AbstractCharacter implements Entity {
     private final String id;
     private int x;
     private int y;
+    protected int hp;
 
-    public AbstractCharacter(String id, int startX, int startY) {
+    public AbstractCharacter(String id, int startX, int startY, int hp) {
         this.id = id;
         this.x = startX;
         this.y = startY;
+        this.hp = hp;
     }
 
     @Override
@@ -27,4 +29,23 @@ public abstract class AbstractCharacter implements Entity {
 
     @Override
     public String getId() { return id; }
+
+    @Override
+    public void takeDamage(int damage) {
+        this.hp -= damage;
+    }
+
+    @Override
+    public boolean isActive() {
+        return this.hp > 0;
+    }
+
+    @Override
+    public boolean canOccupy(int x, int y) {
+        return true; // Comportamento di default: tutte le celle entro i limiti
+    }
+
+    public int getHp() {
+        return hp;
+    }
 }
