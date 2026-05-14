@@ -6,6 +6,7 @@ import it.unicam.cs.mpgc.rpg123024.model.Entity;
 import it.unicam.cs.mpgc.rpg123024.model.entities.Firewall;
 import it.unicam.cs.mpgc.rpg123024.model.entities.Virus;
 import it.unicam.cs.mpgc.rpg123024.model.entities.TrojanVirus;
+import it.unicam.cs.mpgc.rpg123024.model.entities.AbstractCharacter;
 import it.unicam.cs.mpgc.rpg123024.persistence.PersistenceManager;
 
 import javafx.application.Application;
@@ -20,6 +21,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
@@ -34,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Interfaccia Grafica di Bit Shift Tactics con rendering vettoriale avanzato.
+ * Interfaccia Grafica di Bit Shift Tactics migliorata.
  */
 public class GameGUI extends Application {
 
@@ -46,6 +48,7 @@ public class GameGUI extends Application {
     private Grid logicalGrid;
     private Label statsLabel;
     private GridPane gridPane;
+    private Entity selectedEntity = null;
 
     @Override
     public void start(Stage primaryStage) {
@@ -55,7 +58,6 @@ public class GameGUI extends Application {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: BLACK;");
 
-        // --- 1. HUD (Heads-Up Display) ---
         HBox hud = new HBox(15);
         hud.setAlignment(Pos.CENTER);
         hud.setPadding(new Insets(15));
@@ -84,7 +86,6 @@ public class GameGUI extends Application {
         hud.getChildren().addAll(statsLabel, btnPassTurn, btnSave, btnLoad, btnSpawnEnemy);
         root.setTop(hud);
 
-        // --- 2. GRIGLIA DI GIOCO ---
         gridPane = new GridPane();
         gridPane.setAlignment(Pos.CENTER);
 
@@ -94,7 +95,7 @@ public class GameGUI extends Application {
                 cellPane.setMinSize(CELL_SIZE, CELL_SIZE);
                 cellPane.setMaxSize(CELL_SIZE, CELL_SIZE);
 
-                Rectangle bg = new Rectangle(CELL_SIZE, CELL_SIZE);
+                Rectangle bg = new Rectangle(CELL_SIZE - 2, CELL_SIZE - 2);
                 bg.setStroke(Color.BLACK);
                 if (col == 0) bg.setFill(Color.DARKRED);
                 else bg.setFill(Color.web("#2b2b2b"));
@@ -119,20 +120,60 @@ public class GameGUI extends Application {
     }
 
     private void handleCellClick(int col, int row) {
-        if (engine.placeFirewall("FW_" + col + "_" + row, col, row)) {
-            updateView();
+        Optional<Entity> clickedEntity = logicalGrid.getEntityAt(col, row);
+
+        if (clickedEntity.isPresent()) {
+            Entity e = clickedEntity.get();
+            if (e instanceof Firewall) {
+                selectedEntity = e;
+                System.out.println("Selezionato Firewall: " + e.getId());
+            } else if (e instanceof Virus && selectedEntity instanceof Firewall) {
+                // ATTACCO
+                if (engine.attackWithFirewall((Firewall) selectedEntity, (Virus) e)) {
+                    selectedEntity = null;
+                } else {
+                    showAlert("Azione non valida", "Attacco fallito! (Range o azione già usata)");
+                }
+            }
+        } else {
+            // Cella vuota
+            if (selectedEntity instanceof Firewall) {
+                // MOVIMENTO
+                if (engine.moveFirewall((Firewall) selectedEntity, col, row)) {
+                    System.out.println("Movimento riuscito!");
+                    selectedEntity = null; // Deseleziona dopo il movimento
+                } else {
+                    // Se il movimento fallisce (es. già mosso o troppo lontano), prova a piazzare un NUOVO Firewall
+                    if (engine.placeFirewall("FW_" + System.currentTimeMillis(), col, row)) {
+                        selectedEntity = null;
+                    }
+                }
+            } else {
+                // Nessuna selezione: prova a piazzare
+                if (engine.placeFirewall("FW_" + System.currentTimeMillis(), col, row)) {
+                    selectedEntity = null;
+                }
+            }
         }
+        updateView();
     }
 
     private void handleEndTurn() {
         engine.endPlayerTurn();
+        selectedEntity = null;
         updateView();
     }
 
     private void handleSave() {
         try {
+            List<Entity> entities = new ArrayList<>();
+            for (int r = 0; r < ROWS; r++) {
+                for (int c = 0; c < COLS; c++) {
+                    logicalGrid.getEntityAt(c, r).ifPresent(entities::add);
+                }
+            }
             PersistenceManager.SaveData data = new PersistenceManager.SaveData(
-                engine.getCoreHp(), engine.getDataScraps(), engine.getAllEntities()
+                engine.getCoreHp(), engine.getDataScraps(), entities
             );
             new PersistenceManager().save(data);
             showAlert("Salvataggio", "Partita salvata correttamente!");
@@ -147,34 +188,19 @@ public class GameGUI extends Application {
             logicalGrid = new Grid(COLS, ROWS);
             engine = new TurnManager(logicalGrid);
             engine.loadState(data.coreHp, data.dataScraps);
-            
             for (Entity e : data.entities) {
-                logicalGrid.placeEntity(e, e.getX(), e.getY());
-                if (e instanceof Firewall) ((ArrayList)engine.getClass().getDeclaredField("activeFirewalls").get(engine)).add(e);
-                if (e instanceof Virus) ((ArrayList)engine.getClass().getDeclaredField("activeViruses").get(engine)).add(e);
+                if (logicalGrid.placeEntity(e, e.getX(), e.getY())) {
+                    engine.addLoadedEntity(e);
+                }
             }
+            selectedEntity = null;
             updateView();
-            showAlert("Caricamento", "Partita ripristinata!");
+            showAlert("Caricamento", "Partita caricata!");
         } catch (Exception ex) {
-            showAlert("Errore", "Errore nel caricamento: " + ex.getMessage());
+            ex.printStackTrace(); // Stampa l'errore completo nella console di IntelliJ
+            showAlert("Errore di Caricamento", 
+                "Dettagli: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
         }
-    }
-
-    private void showAlert(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
-    }
-
-    private void handleSpawnEnemy() {
-        int randomRow = (int) (Math.random() * ROWS);
-        Virus v = (Math.random() < 0.3) 
-            ? new TrojanVirus("TROJAN_" + System.currentTimeMillis(), 7, randomRow)
-            : new Virus("V_TEST_" + System.currentTimeMillis(), 7, randomRow, 100);
-        engine.spawnVirus(v);
-        updateView();
     }
 
     private void updateView() {
@@ -186,17 +212,53 @@ public class GameGUI extends Application {
                 StackPane cellPane = getCellPaneAt(col, row);
                 if (cellPane == null) continue;
 
-                cellPane.getChildren().removeIf(node -> node instanceof Shape && node != cellPane.getChildren().get(0));
+                // RIMUOVI TUTTO tranne lo sfondo (indice 0)
+                while (cellPane.getChildren().size() > 1) {
+                    cellPane.getChildren().remove(1);
+                }
+
+                Rectangle bg = (Rectangle) cellPane.getChildren().get(0);
+                bg.setStroke(Color.BLACK);
+                bg.setStrokeWidth(1);
 
                 Optional<Entity> entityOpt = logicalGrid.getEntityAt(col, row);
                 if (entityOpt.isPresent()) {
                     Entity e = entityOpt.get();
+                    if (e == selectedEntity) {
+                        bg.setStroke(Color.YELLOW);
+                        bg.setStrokeWidth(3);
+                    }
+
                     if (e instanceof Firewall) cellPane.getChildren().add(createFirewallShape());
                     else if (e instanceof TrojanVirus) cellPane.getChildren().add(createTrojanShape());
                     else if (e instanceof Virus) cellPane.getChildren().add(createVirusShape());
+
+                    cellPane.getChildren().add(createHealthBarUI(e));
                 }
             }
         }
+    }
+
+    private VBox createHealthBarUI(Entity e) {
+        double maxHp = e.getMaxHp();
+        double currentHp = (e instanceof AbstractCharacter) ? ((AbstractCharacter) e).getHp() : 0;
+        
+        Rectangle background = new Rectangle(60, 6, Color.web("#444444"));
+        background.setArcWidth(4); background.setArcHeight(4);
+        
+        double ratio = Math.max(0, currentHp) / maxHp;
+        Rectangle foreground = new Rectangle(60 * ratio, 6, Color.web(ratio > 0.5 ? "#2ecc71" : "#e74c3c"));
+        foreground.setArcWidth(4); foreground.setArcHeight(4);
+        
+        StackPane bar = new StackPane(background, foreground);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setMaxWidth(60);
+        
+        VBox container = new VBox(bar);
+        container.setAlignment(Pos.BOTTOM_CENTER);
+        container.setPadding(new Insets(0, 0, 8, 0));
+        container.setMouseTransparent(true); // Evita che la barra blocchi i click
+        return container;
     }
 
     private StackPane getCellPaneAt(int col, int row) {
@@ -224,6 +286,23 @@ public class GameGUI extends Application {
         Polygon p = createVirusShape();
         p.setFill(Color.GOLD); p.setStroke(Color.ORANGE);
         return p;
+    }
+
+    private void handleSpawnEnemy() {
+        int randomRow = (int) (Math.random() * ROWS);
+        Virus v = (Math.random() < 0.3) 
+            ? new TrojanVirus("TROJAN_" + System.currentTimeMillis(), 7, randomRow)
+            : new Virus("VIRUS_" + System.currentTimeMillis(), 7, randomRow, 40);
+        engine.spawnVirus(v);
+        updateView();
+    }
+
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     public static void main(String[] args) { launch(args); }

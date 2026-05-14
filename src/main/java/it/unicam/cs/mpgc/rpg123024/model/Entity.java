@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import it.unicam.cs.mpgc.rpg123024.model.entities.Firewall;
 import it.unicam.cs.mpgc.rpg123024.model.entities.Virus;
+import it.unicam.cs.mpgc.rpg123024.model.entities.TrojanVirus;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -12,7 +13,8 @@ import it.unicam.cs.mpgc.rpg123024.model.entities.Virus;
 )
 @JsonSubTypes({
     @JsonSubTypes.Type(value = Firewall.class, name = "firewall"),
-    @JsonSubTypes.Type(value = Virus.class, name = "virus")
+    @JsonSubTypes.Type(value = Virus.class, name = "virus"),
+    @JsonSubTypes.Type(value = TrojanVirus.class, name = "trojan")
 })
 public interface Entity {
     int getX();
@@ -22,4 +24,5 @@ public interface Entity {
     void takeDamage(int damage);
     boolean isActive();
     boolean canOccupy(int x, int y);
+    int getMaxHp();
 }

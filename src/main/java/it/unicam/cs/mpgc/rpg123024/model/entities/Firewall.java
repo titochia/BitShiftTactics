@@ -1,14 +1,26 @@
 package it.unicam.cs.mpgc.rpg123024.model.entities;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+
+@JsonTypeName("firewall")
 public class Firewall extends AbstractCharacter {
 
-    // Per gestire il turno dinamico
     private boolean hasMovedThisTurn;
     private boolean hasAttackedThisTurn;
 
-    public Firewall(String id, int startX, int startY) {
-        super(id, startX, startY, 3); // 3 HP = Durabilità
+    @JsonCreator
+    public Firewall(@JsonProperty("id") String id, 
+                    @JsonProperty("x") int x, 
+                    @JsonProperty("y") int y,
+                    @JsonProperty("hp") int hp) {
+        super(id, x, y, hp);
         resetTurnFlags();
+    }
+
+    public Firewall(String id, int startX, int startY) {
+        this(id, startX, startY, 3);
     }
 
     @Override

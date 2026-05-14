@@ -1,9 +1,12 @@
 package it.unicam.cs.mpgc.rpg123024.persistence;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.unicam.cs.mpgc.rpg123024.model.Entity;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,7 +20,8 @@ public class PersistenceManager {
 
     public PersistenceManager() {
         this.mapper = new ObjectMapper();
-        // Registriamo moduli extra se necessario (es. JDK8 per Optional)
+        // Ignora proprietà sconosciute per evitare crash tra versioni diverse
+        this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.mapper.findAndRegisterModules();
     }
 
@@ -44,11 +48,15 @@ public class PersistenceManager {
      * Classe DTO (Data Transfer Object) per raggruppare i dati da salvare.
      */
     public static class SaveData {
+        @JsonProperty("coreHp")
         public int coreHp;
-        public int dataScraps;
-        public List<Entity> entities;
         
-        // Jackson ha bisogno di un costruttore vuoto
+        @JsonProperty("dataScraps")
+        public int dataScraps;
+        
+        @JsonProperty("entities")
+        public List<Entity> entities = new ArrayList<>();
+        
         public SaveData() {}
 
         public SaveData(int coreHp, int dataScraps, List<Entity> entities) {

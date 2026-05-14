@@ -47,13 +47,11 @@ public class TurnManager {
     }
 
     /**
-     * Restituisce tutte le entità attualmente attive nel gioco.
+     * Aggiunge un'entità direttamente alle liste attive (usato per il caricamento).
      */
-    public List<Entity> getAllEntities() {
-        List<Entity> all = new ArrayList<>();
-        all.addAll(activeFirewalls);
-        all.addAll(activeViruses);
-        return all;
+    public void addLoadedEntity(Entity e) {
+        if (e instanceof Firewall) activeFirewalls.add((Firewall) e);
+        else if (e instanceof Virus) activeViruses.add((Virus) e);
     }
 
     // --- AZIONI DEL GIOCATORE ---

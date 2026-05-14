@@ -1,0 +1,30 @@
+{
+  "coreHp" : 100,
+  "dataScraps" : 2,
+  "entities" : [ {
+    "type" : "trojan",
+    "id" : "[TROJAN] TROJAN_1778599474300",
+    "x" : 5,
+    "y" : 0,
+    "hp" : 80,
+    "destroyed" : false,
+    "active" : true
+  }, {
+    "type" : "trojan",
+    "id" : "[TROJAN] TROJAN_1778599473808",
+    "x" : 5,
+    "y" : 1,
+    "hp" : 80,
+    "destroyed" : false,
+    "active" : true
+  }, {
+    "type" : "firewall",
+    "id" : "FW_1778599472346",
+    "x" : 2,
+    "y" : 2,
+    "hp" : 3,
+    "broken" : false,
+    "durability" : 3,
+    "active" : true
+  } ]
+}

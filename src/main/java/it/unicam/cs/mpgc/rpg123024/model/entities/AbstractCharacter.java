@@ -7,12 +7,20 @@ public abstract class AbstractCharacter implements Entity {
     private int x;
     private int y;
     protected int hp;
+    protected final int maxHp;
 
     public AbstractCharacter(String id, int startX, int startY, int hp) {
         this.id = id;
         this.x = startX;
         this.y = startY;
         this.hp = hp;
+        this.maxHp = hp;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Override
+    public int getMaxHp() {
+        return maxHp;
     }
 
     @Override
@@ -47,5 +55,9 @@ public abstract class AbstractCharacter implements Entity {
 
     public int getHp() {
         return hp;
+    }
+
+    public void setHp(int hp) {
+        this.hp = hp;
     }
 }
